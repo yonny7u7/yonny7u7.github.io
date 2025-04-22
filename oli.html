@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tabulador de Levantamiento Topográfico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body {
+      background-color: #f5f5dc;
+      font-family: 'Arial', sans-serif;
+    }
+    .hidden { display: none; }
+    .optionBtn {
+      background-color: #e0f2fe;
+      padding: 8px 16px;
+      margin: 4px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      transform: scale(1);
+    }
+    .optionBtn:hover {
+      background-color: #bae6fd;
+      transform: scale(1.05);
+    }
+    .optionBtn.selected {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      text-align: center;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo.jpeg" alt="Logo" style="position:absolute; top:0; left:0; width:3cm; height:3cm;">
+  <div class="form-container max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Tabulador de Levantamiento Topográfico</h1>
+    <form id="formulario" onsubmit="guardarInfo(event)">
+      <!-- Preguntas -->
+      <div class="question mb-4">
+        <label for="area" class="block font-semibold">1. Área (m²):</label>
+        <input type="number" id="area" required class="w-full p-2 border rounded"/>
+      </div>
+      <div class="question mb-4">
+        <label for="precioM2" class="block font-semibold">Precio por m²:</label>
+        <input type="number" id="precioM2" required class="w-full p-2 border rounded"/>
+      </div>
+      <div class="question mb-4">
+        <label for="zona" class="block font-semibold">2. Zona:</label>
+        <input type="text" id="zona" required class="w-full p-2 border rounded"/>
+      </div>
+
+      <!-- Botones de selección -->
+      <div class="question mb-4">
+        <label class="block font-semibold">3. Tipo de terreno:</label>
+        <button type="button" onclick="toggleOptions('terreno')" class="bg-gray-200 px-4 py-2 rounded transition hover:bg-gray-300">Seleccionar ▼</button>
+        <div class="hidden options mt-2" id="terrenoOptions">
+          <button type="button" onclick="guardarSeleccion('terreno', 'Plano', this)" class="optionBtn">Plano</button>
+          <button type="button" onclick="guardarSeleccion('terreno', 'Lomerío', this)" class="optionBtn">Lomerío</button>
+          <button type="button" onclick="guardarSeleccion('terreno', 'Montañoso', this)" class="optionBtn">Montañoso</button>
+        </div>
+      </div>
+
+      <div class="question mb-4">
+        <label class="block font-semibold">4. Tipo de vegetación:</label>
+        <button type="button" onclick="toggleOptions('vegetacion')" class="bg-gray-200 px-4 py-2 rounded transition hover:bg-gray-300">Seleccionar ▼</button>
+        <div class="hidden options mt-2" id="vegetacionOptions">
+          <button type="button" onclick="guardarSeleccion('vegetacion', 'Nula', this)" class="optionBtn">Nula</button>
+          <button type="button" onclick="guardarSeleccion('vegetacion', 'Mediana', this)" class="optionBtn">Mediana</button>
+          <button type="button" onclick="guardarSeleccion('vegetacion', 'Demasiada', this)" class="optionBtn">Demasiada</button>
+        </div>
+      </div>
+
+      <div class="question mb-4">
+        <label class="block font-semibold">5. Tipo de figura:</label>
+        <button type="button" onclick="toggleOptions('figura')" class="bg-gray-200 px-4 py-2 rounded transition hover:bg-gray-300">Seleccionar ▼</button>
+        <div class="hidden options mt-2" id="figuraOptions">
+          <button type="button" onclick="guardarSeleccion('figura', 'Regular', this)" class="optionBtn">Regular</button>
+          <button type="button" onclick="guardarSeleccion('figura', 'Irregular', this)" class="optionBtn">Irregular</button>
+        </div>
+      </div>
+
+      <div class="question mb-4">
+        <label class="block font-semibold">6. Instrumentos a utilizar:</label>
+        <button type="button" onclick="toggleOptions('instrumentos')" class="bg-gray-200 px-4 py-2 rounded transition hover:bg-gray-300">Seleccionar ▼</button>
+        <div class="hidden options mt-2" id="instrumentosOptions">
+          <button type="button" onclick="seleccionarInstrumento('Dron', this)" class="optionBtn">Dron</button>
+          <button type="button" onclick="seleccionarInstrumento('RTK', this)" class="optionBtn">RTK</button>
+          <button type="button" onclick="seleccionarInstrumento('Estación Total', this)" class="optionBtn">Estación Total</button>
+          <button type="button" onclick="seleccionarInstrumento('Cinta', this)" class="optionBtn">Cinta</button>
+          <button type="button" onclick="seleccionarInstrumento('Nivel fijo', this)" class="optionBtn">Nivel fijo</button>
+        </div>
+      </div>
+
+      <div class="question mb-4">
+        <label class="block font-semibold">7. Gastos:</label>
+        <button type="button" onclick="toggleOptions('gastos')" class="bg-gray-200 px-4 py-2 rounded transition hover:bg-gray-300">Seleccionar ▼</button>
+        <div class="hidden options mt-2" id="gastosOptions">
+          <input type="number" id="gastoTransporte" placeholder="Gastos de transporte" class="w-full p-2 mt-2 border rounded">
+          <input type="number" id="gastoPersonal" placeholder="Gastos personales" class="w-full p-2 mt-2 border rounded">
+          <input type="number" id="gastoDescuento" placeholder="Descuento (%)" class="w-full p-2 mt-2 border rounded">
+          <input type="number" id="gastoOtros" placeholder="Otros gastos" class="w-full p-2 mt-2 border rounded">
+        </div>
+      </div>
+
+      <div class="text-center">
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition transform hover:scale-105">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="modalPrecio" class="modal hidden">
+    <div class="modal-content">
+      <h3>Ingrese precio de renta para <span id="instrumentoNombre"></span></h3>
+      <input type="number" id="precioInstrumentoInput" placeholder="Precio">
+      <button class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition" onclick="guardarPrecioInstrumento()">Guardar</button>
+    </div>
+  </div>
+
+  <div id="recibo" class="hidden max-w-3xl mx-auto bg-white mt-6 p-6 rounded shadow">
+    <h2 class="text-xl font-bold mb-4">Recibo</h2>
+    <p><strong>Área:</strong> <span id="reciboArea"></span> m²</p>
+    <p><strong>Precio por m²:</strong> $<span id="reciboPrecioM2"></span></p>
+    <p><strong>Total por área:</strong> $<span id="reciboTotalArea"></span></p>
+    <p><strong>Zona:</strong> <span id="reciboZona"></span></p>
+    <p><strong>Tipo de terreno:</strong> <span id="reciboTerreno"></span></p>
+    <p><strong>Tipo de vegetación:</strong> <span id="reciboVegetacion"></span></p>
+    <p><strong>Tipo de figura:</strong> <span id="reciboFigura"></span></p>
+    <p><strong>Instrumentos:</strong> <span id="reciboInstrumentos"></span></p>
+    <p><strong>Gastos de transporte:</strong> $<span id="reciboTransporte"></span></p>
+    <p><strong>Gastos personales:</strong> $<span id="reciboPersonal"></span></p>
+    <p><strong>Descuento aplicado:</strong> <span id="reciboDescuento"></span>%</p>
+    <p><strong>Otros gastos:</strong> $<span id="reciboOtros"></span></p>
+    <p class="mt-4 font-bold"><strong>Total con descuento:</strong> $<span id="reciboTotalConDescuento"></span></p>
+    <p class="mt-2 text-lg font-bold text-green-700"><strong>Total general del levantamiento:</strong> $<span id="reciboTotalGeneral"></span></p>
+
+    <div class="mt-6 flex gap-4">
+      <button onclick="regresarFormulario()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Regresar al Formulario</button>
+      <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Imprimir</button>
+      <button onclick="descargarPDF()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Descargar PDF</button>
+    </div>
+  </div>
+
+  <script>
+    let tipoTerreno = '', tipoVegetacion = '', tipoFigura = '';
+    let instrumentosSeleccionados = [];
+    let preciosInstrumentos = {};
+    let instrumentoActual = '';
+
+    function toggleOptions(id) {
+      document.getElementById(`${id}Options`).classList.toggle('hidden');
+    }
+
+    function guardarSeleccion(tipo, valor, btn) {
+      if (tipo === 'terreno') tipoTerreno = valor;
+      if (tipo === 'vegetacion') tipoVegetacion = valor;
+      if (tipo === 'figura') tipoFigura = valor;
+
+      const buttons = document.querySelectorAll(`#${tipo}Options button`);
+      buttons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function seleccionarInstrumento(nombre, btn) {
+      if (!instrumentosSeleccionados.includes(nombre)) {
+        instrumentoActual = nombre;
+        document.getElementById('instrumentoNombre').textContent = nombre;
+        document.getElementById('precioInstrumentoInput').value = '';
+        document.getElementById('modalPrecio').classList.remove('hidden');
+        btn.classList.add('selected');
+      }
+    }
+
+    function guardarPrecioInstrumento() {
+      const precio = document.getElementById('precioInstrumentoInput').value;
+      if (precio !== '') {
+        instrumentosSeleccionados.push(instrumentoActual);
+        preciosInstrumentos[instrumentoActual] = parseFloat(precio);
+        document.getElementById('modalPrecio').classList.add('hidden');
+      }
+    }
+
+    function guardarInfo(e) {
+      e.preventDefault();
+      const area = parseFloat(document.getElementById("area").value);
+      const precioM2 = parseFloat(document.getElementById("precioM2").value);
+      const totalArea = area * precioM2;
+
+      const gastoTransporte = parseFloat(document.getElementById("gastoTransporte").value || 0);
+      const gastoPersonal = parseFloat(document.getElementById("gastoPersonal").value || 0);
+      const gastoOtros = parseFloat(document.getElementById("gastoOtros").value || 0);
+      const descuento = parseFloat(document.getElementById("gastoDescuento").value || 0);
+
+      const totalGastos = gastoTransporte + gastoPersonal + gastoOtros;
+
+      let totalInstrumentos = 0;
+      instrumentosSeleccionados.forEach(inst => {
+        totalInstrumentos += preciosInstrumentos[inst] || 0;
+      });
+
+      const totalSinDescuento = totalArea + totalGastos + totalInstrumentos;
+      const totalConDescuento = totalSinDescuento * (1 - descuento / 100);
+
+      document.getElementById("formulario").style.display = "none";
+      document.getElementById("recibo").classList.remove("hidden");
+
+      document.getElementById("reciboArea").textContent = area;
+      document.getElementById("reciboPrecioM2").textContent = precioM2.toFixed(2);
+      document.getElementById("reciboTotalArea").textContent = totalArea.toFixed(2);
+      document.getElementById("reciboZona").textContent = document.getElementById("zona").value;
+      document.getElementById("reciboTerreno").textContent = tipoTerreno;
+      document.getElementById("reciboVegetacion").textContent = tipoVegetacion;
+      document.getElementById("reciboFigura").textContent = tipoFigura;
+      document.getElementById("reciboInstrumentos").textContent = instrumentosSeleccionados.map(i => `${i} ($${preciosInstrumentos[i]})`).join(', ');
+      document.getElementById("reciboTransporte").textContent = gastoTransporte.toFixed(2);
+      document.getElementById("reciboPersonal").textContent = gastoPersonal.toFixed(2);
+      document.getElementById("reciboOtros").textContent = gastoOtros.toFixed(2);
+      document.getElementById("reciboDescuento").textContent = descuento.toFixed(2);
+      document.getElementById("reciboTotalConDescuento").textContent = totalConDescuento.toFixed(2);
+      document.getElementById("reciboTotalGeneral").textContent = totalConDescuento.toFixed(2);
+    }
+
+    function regresarFormulario() {
+      document.getElementById("formulario").style.display = "block";
+      document.getElementById("recibo").classList.add("hidden");
+    }
+
+    function descargarPDF() {
+      document.querySelectorAll("#recibo button").forEach(button => {
+        button.classList.add("hidden");
+      });
+
+      const element = document.getElementById("recibo");
+      const opt = {
+        margin: 0.5,
+        filename: 'recibo_levantamiento.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        document.querySelectorAll("#recibo button").forEach(button => {
+          button.classList.remove("hidden");
+        });
+      });
+    }
+  </script>
+</body>
+</html>
